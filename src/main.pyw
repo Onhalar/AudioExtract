@@ -58,9 +58,6 @@ def selectFolder(displayLabel: Label):
 def getFileName(filePath: str):
     return os.path.basename(filePath)
 
-#def replaceExtension(fileName: str, extension: str):
-#    return os.path.splitext(fileName)[0] + extension
-
 def selectFiles(fileList: Listbox):
     inFiles.extend(filedialog.askopenfilenames(filetypes=[("Video files", "*.mp4;*.avi;*.mov")]))
 
@@ -75,18 +72,24 @@ def selectFiles(fileList: Listbox):
     
     clearAll(fileList, False)
     for file in inFiles:
-        fileList.insert(END, truncateText(os.path.basename(file), 20))
+        fileList.insert(END, truncateText(os.path.basename(file), 17))
 
-def extractAudio(fileList: Listbox, progressBar: ttk.Progressbar):
+def extractAll(fileList: Listbox, progressBar: ttk.Progressbar):
+    progressBar.config(maximum= len(inFiles) - 1)
     for i in range(len(inFiles)):
-        progressBar["maximum"] = len(inFiles) - 1
-        progressBar["value"] = i
 
-        outFile = os.path.join(outPath, getFileName(inFiles[i]) + ".mp3")
+        outFile = os.path.splitext(inFiles[i])[0] + ".mp3"
 
         outFiles.append(outFile)
 
         extractAudio(inFiles[i], outFile)
+
+        progressBar.step()
+        
+
+        updatedItem = fileList.get(i) + " EX"
+        fileList.delete(i)
+        fileList.insert(i, updatedItem)
     
 
 def UI():
@@ -95,13 +98,6 @@ def UI():
     
     fileList = Listbox(main, selectmode="extended")
     fileList.grid(column=1, row=0)
-
-    toolBar = ttk.Frame(main)
-    ttk.Button(toolBar, text="OPEN", command= lambda : selectFiles(fileList)).grid(column=0, row=0, sticky="NSEW", pady=20)
-    ttk.Button(toolBar, text="REMOVE", command=lambda fileList = fileList: clearSelected(fileList)).grid(column=0, row=1, sticky="NSEW")
-    ttk.Button(toolBar, text="CLEAR", command= lambda fileList = fileList : clearAll(fileList)).grid(column=0, row=2, sticky="NSEW")
-    ttk.Button(toolBar, text="EXTRACT").grid(column=0, row=3, sticky="NSEW", pady=15)
-    toolBar.grid(column=0, row=0)
 
     progressBar = ttk.Progressbar(main)
     progressBar.grid(column=0, row=1, columnspan=2, sticky="NSEW")
@@ -114,6 +110,13 @@ def UI():
     ttk.Button(progressDisplay, text="OUT", command= lambda : selectFolder(outPathDisplay)).grid(column=0, row=1)
 
     progressDisplay.grid(column=0, row=2, columnspan=2, sticky="NSEW")
+
+    toolBar = ttk.Frame(main)
+    ttk.Button(toolBar, text="OPEN", command= lambda : selectFiles(fileList)).grid(column=0, row=0, sticky="NSEW", pady=20)
+    ttk.Button(toolBar, text="REMOVE", command=lambda fileList = fileList: clearSelected(fileList)).grid(column=0, row=1, sticky="NSEW")
+    ttk.Button(toolBar, text="CLEAR", command= lambda fileList = fileList : clearAll(fileList)).grid(column=0, row=2, sticky="NSEW")
+    ttk.Button(toolBar, text="EXTRACT", command= lambda fileList = fileList, progressBar = progressBar : extractAll(fileList, progressBar)).grid(column=0, row=3, sticky="NSEW", pady=15)
+    toolBar.grid(column=0, row=0)
 
     main.mainloop()
 
