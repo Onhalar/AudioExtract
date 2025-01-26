@@ -1,6 +1,6 @@
-import tkinter.ttk
+import tkinter.ttk as ttk
 from moviepy import VideoFileClip
-import pygame
+import os
 
 from tkinter import *
 from tkinter import messagebox, filedialog , ttk #, simpledialog
@@ -36,15 +36,18 @@ def extractAudio(inFile: str, outfile: str):
 
     print("Audio extraction successful!")
 
-def clearAll(fileList: Listbox):
+def clearAll(fileList: Listbox, clearData = True):
     fileList.delete(0, END)
-    inFiles.clear()
-    outFiles.clear()
+    if clearData:
+        inFiles.clear()
+        outFiles.clear()
 
-def clearSelected(fileList: Listbox, index: int):
+def clearSelected(fileList: Listbox):
+    indexes = fileList.curselection()[::-1]
     try:
-        fileList.delete(index)
-        inFiles.pop(index)
+        for index in indexes:
+            fileList.delete(index)
+            inFiles.pop(index)
     except TclError:
         pass
 
@@ -52,19 +55,50 @@ def selectFolder(displayLabel: Label):
     outPath = filedialog.askdirectory()
     displayLabel.config(text=truncateText(outPath, 15, True))
 
+def getFileName(filePath: str):
+    return os.path.basename(filePath)
+
+#def replaceExtension(fileName: str, extension: str):
+#    return os.path.splitext(fileName)[0] + extension
+
 def selectFiles(fileList: Listbox):
-    pass
+    inFiles.extend(filedialog.askopenfilenames(filetypes=[("Video files", "*.mp4;*.avi;*.mov")]))
+
+    duplicateFound = False
+    for file in inFiles:
+        if inFiles.count(file) > 1:
+            inFiles.remove(file)
+            duplicateFound = True
+    
+    if duplicateFound:
+        messagebox.showerror("Duplicate", "Duplicate file detected. Only the first occurrence will be processed.")
+    
+    clearAll(fileList, False)
+    for file in inFiles:
+        fileList.insert(END, truncateText(os.path.basename(file), 20))
+
+def extractAudio(fileList: Listbox, progressBar: ttk.Progressbar):
+    for i in range(len(inFiles)):
+        progressBar["maximum"] = len(inFiles) - 1
+        progressBar["value"] = i
+
+        outFile = os.path.join(outPath, getFileName(inFiles[i]) + ".mp3")
+
+        outFiles.append(outFile)
+
+        extractAudio(inFiles[i], outFile)
+    
 
 def UI():
     main = Tk()
     main.resizable(False, False)
-
-    fileList = Listbox(main)
+    
+    fileList = Listbox(main, selectmode="extended")
     fileList.grid(column=1, row=0)
 
     toolBar = ttk.Frame(main)
-    ttk.Button(toolBar, text="OPEN").grid(column=0, row=0, sticky="NSEW", pady=20)
-    ttk.Button(toolBar, text="REMOVE", command=lambda fileList = fileList, index = fileList.curselection() : clearSelected(fileList, index)).grid(column=0, row=1, sticky="NSEW")
+    ttk.Button(toolBar, text="OPEN", command= lambda : selectFiles(fileList)).grid(column=0, row=0, sticky="NSEW", pady=20)
+    ttk.Button(toolBar, text="REMOVE", command=lambda fileList = fileList: clearSelected(fileList)).grid(column=0, row=1, sticky="NSEW")
     ttk.Button(toolBar, text="CLEAR", command= lambda fileList = fileList : clearAll(fileList)).grid(column=0, row=2, sticky="NSEW")
     ttk.Button(toolBar, text="EXTRACT").grid(column=0, row=3, sticky="NSEW", pady=15)
     toolBar.grid(column=0, row=0)
@@ -84,4 +118,5 @@ def UI():
     main.mainloop()
 
 # Main loop
-UI()
+if __name__ == '__main__':
+    UI()
